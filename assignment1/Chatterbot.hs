@@ -2,6 +2,7 @@ module Chatterbot where
 import Utilities
 import System.Random
 import Data.Char
+import Data.Maybe
 
 chatterbot :: String -> [(String, [String])] -> IO ()
 chatterbot botName botRules = do
@@ -22,20 +23,26 @@ type Phrase = [String]
 type PhrasePair = (Phrase, Phrase)
 type BotBrain = [(Phrase, [Phrase])]
 
-
 --------------------------------------------------------
 
 stateOfMind :: BotBrain -> IO (Phrase -> Phrase)
-{- TO BE WRITTEN -}
-stateOfMind _ = return id
+stateOfMind brain = do
+  r <- randomIO :: IO Float
+  return (rulesApply ((map (map2 (id, pick r))) brain))
 
 rulesApply :: [PhrasePair] -> Phrase -> Phrase
-{- TO BE WRITTEN -}
-rulesApply _ = id
+rulesApply pairs input = fromJust $ orElse (transformationsApply "*" reflect pairs input) (Just [])
 
 reflect :: Phrase -> Phrase
-{- TO BE WRITTEN -}
-reflect = id
+reflect [] = []
+reflect (x:xs) = replace reflections x : reflect xs
+
+replace :: [(String, String)] -> String -> String
+replace [] word = word
+replace (pair:pairs) word = 
+    if (word == (fst pair)) then snd pair 
+    else if (word == (snd pair)) then fst pair
+    else replace pairs word
 
 reflections =
   [ ("am",     "are"),
@@ -56,7 +63,6 @@ reflections =
     ("you",    "me")
   ]
 
-
 ---------------------------------------------------------------------------------
 
 endOfDialog :: String -> Bool
@@ -69,12 +75,10 @@ prepare :: String -> Phrase
 prepare = reduce . words . map toLower . filter (not . flip elem ".,:;*!#%&|") 
 
 rulesCompile :: [(String, [String])] -> BotBrain
-{- TO BE WRITTEN -}
-rulesCompile _ = []
-
+rulesCompile [] = []
+rulesCompile ((f, s):pairs) = (words (map toLower f), map words (map (map toLower) s)) : rulesCompile pairs
 
 --------------------------------------
-
 
 reductions :: [PhrasePair]
 reductions = (map.map2) (words, words)
@@ -95,49 +99,31 @@ reduce :: Phrase -> Phrase
 reduce = reductionsApply reductions
 
 reductionsApply :: [PhrasePair] -> Phrase -> Phrase
-{- TO BE WRITTEN -}
-reductionsApply _ = id
-
+reductionsApply = fix . try . (transformationsApply "*" id)
 
 -------------------------------------------------------
 -- Match and substitute
 --------------------------------------------------------
 
--- Replaces a wildcard in a list with the list given as the third argument
 substitute :: Eq a => a -> [a] -> [a] -> [a]
-substitute _ _ _ = []
-{- TO BE WRITTEN -}
-
+substitute wc [] _ = []
+substitute wc (p:pn) ls = if(p == wc) then ls ++ substitute wc pn ls else p:substitute wc pn ls
 
 -- Tries to match two lists. If they match, the result consists of the sublist
 -- bound to the wildcard in the pattern list.
 match :: Eq a => a -> [a] -> [a] -> Maybe [a]
-match _ _ _ = Nothing
-{- TO BE WRITTEN -}
-
+match _ [] [] = Just []
+match _ [] _ = Nothing
+match _ _ [] = Nothing
+match wc (p:ps) (s:ls)
+    | p == wc = orElse (singleWildcardMatch (p:ps) (s:ls)) (longerWildcardMatch (p:ps) (s:ls)) 
+    | p == s = match wc ps ls
+    | otherwise = Nothing
 
 -- Helper function to match
 singleWildcardMatch, longerWildcardMatch :: Eq a => [a] -> [a] -> Maybe [a]
-singleWildcardMatch (wc:ps) (x:xs) = Nothing
-{- TO BE WRITTEN -}
-longerWildcardMatch (wc:ps) (x:xs) = Nothing
-{- TO BE WRITTEN -}
-
-
-
--- Test cases --------------------
-
-testPattern =  "a=*;"
-testSubstitutions = "32"
-testString = "a=32;"
-
-substituteTest = substitute '*' testPattern testSubstitutions
-substituteCheck = substituteTest == testString
-
-matchTest = match '*' testPattern testString
-matchCheck = matchTest == Just testSubstitutions
-
-
+singleWildcardMatch (wc:ps) (x:xs) = mmap (const [x]) (match wc ps xs)
+longerWildcardMatch (wc:ps) (x:xs) = mmap ([x] ++)    (match wc (wc:ps) xs)
 
 -------------------------------------------------------
 -- Applying patterns
@@ -145,13 +131,9 @@ matchCheck = matchTest == Just testSubstitutions
 
 -- Applying a single pattern
 transformationApply :: Eq a => a -> ([a] -> [a]) -> [a] -> ([a], [a]) -> Maybe [a]
-transformationApply _ _ _ _ = Nothing
-{- TO BE WRITTEN -}
-
+transformationApply wc f input (org, trans) = mmap (substitute wc trans) (mmap f (match wc org input))
 
 -- Applying a list of patterns until one succeeds
 transformationsApply :: Eq a => a -> ([a] -> [a]) -> [([a], [a])] -> [a] -> Maybe [a]
-transformationsApply _ _ _ _ = Nothing
-{- TO BE WRITTEN -}
-
-
+transformationsApply wc f [] input = Nothing
+transformationsApply wc f (pair:pairs) input = orElse (transformationApply wc f input pair) (transformationsApply wc f pairs input)
