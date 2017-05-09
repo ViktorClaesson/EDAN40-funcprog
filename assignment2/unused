@@ -1,0 +1,25 @@
+{- unused stuff
+outputOptAlignments s1 s2 = mapM_ print $ ("", "There are " ++ len ++ " alignments:"):alignments
+                                where
+                                    alignments = optAlignments s1 s2
+                                    print (x, y) = putStrLn (x ++ "\n" ++ y ++ "\n")
+                                    len = show $ length alignments
+
+optAlignments :: String -> String -> [(String, String)]
+optAlignments [] [] = [("", "")]
+optAlignments xs [] = [(xs, concat $ take (length xs) $ repeat "-")]
+optAlignments [] ys = [(concat $ take (length ys) $ repeat "-", ys)]
+optAlignments (x:xs) (y:ys) = maximaBy similarity $ concat [attachHeads x y (optAlignments xs ys), attachHeads '-' y (optAlignments (x:xs) ys), attachHeads x '-' (optAlignments xs (y:ys))]
+
+similarityScore :: String -> String -> Int
+similarityScore [] [] = 0
+similarityScore (x:xs) [] = (length (x:xs)) * (score x '-')
+similarityScore [] (y:ys) = (length (y:ys)) * (score y '-')
+similarityScore (x:xs) (y:ys) = maximum [(similarityScore xs ys) + (score x y), (similarityScore (x:xs) ys) + (score '-' y), (similarityScore xs (y:ys)) + (score x '-')]
+
+similarity :: (String, String) -> Int
+similarity ([], []) = 0
+similarity ((x:xs), []) = (length (x:xs)) * (score x '-')
+similarity ([], (y:ys)) = (length (y:ys)) * (score '-' y)
+similarity ((x:xs), (y:ys)) = (similarity (xs, ys)) + (score x y)
+-}
