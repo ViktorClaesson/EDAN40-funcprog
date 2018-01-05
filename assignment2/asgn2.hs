@@ -61,9 +61,9 @@ optAlignments xs ys = map reverseTouple $ snd $ align (length xs) (length ys)
          high = fst $ maxb!!0
          agns = concat $ map snd maxb
 
-outputOptAlignments s1 s2 = putStrLn $ "There are " ++ len ++ " alignments: \n\n" ++ (output alignments)
+outputOptAlignments s1 s2 = putStrLn $ "There are " ++ len ++ " alignments: \n\n" ++ (output alignments) ++ "There were " ++ len ++ " alignments!"
                                 where
-                                    output ((f, s):[]) = (f ++ "\n" ++ s ++ "\n")
+                                    output [] = []
                                     output ((f, s):ts) = (f ++ "\n" ++ s ++ "\n\n") ++ (output ts)
                                     alignments = optAlignments s1 s2
                                     len = show $ length alignments
